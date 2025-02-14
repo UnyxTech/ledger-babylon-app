@@ -33,6 +33,7 @@ int call_get_merkleized_map_with_callback(dispatcher_context_t *dispatcher_conte
     if (!buffer_read_varint(&buf, &out_ptr->size) ||
         !buffer_read_bytes(&buf, out_ptr->keys_root, 32) ||
         !buffer_read_bytes(&buf, out_ptr->values_root, 32)) {
+        PRINTF("call_get_merkleized_map_with_callback\n");
         return -1;
     }
 

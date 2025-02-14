@@ -36,7 +36,7 @@ int call_get_merkle_leaf_hash(dispatcher_context_t *dc,
 
         dc->finalize_response(SW_INTERRUPTED_EXECUTION);
     }
-
+    PRINTF("call_get_merkle_leaf_hash process_interruption 1\n");
     if (dc->process_interruption(dc) < 0) {
         return -1;
     }
@@ -46,12 +46,13 @@ int call_get_merkle_leaf_hash(dispatcher_context_t *dc,
         uint8_t cur_hash[32];  // temporary buffer for intermediate hashes
         uint8_t proof_size;
         uint8_t n_proof_elements;
+        
         if (!buffer_read_bytes(&dc->read_buffer, cur_hash, 32) ||
             !buffer_read_u8(&dc->read_buffer, &proof_size) ||
             !buffer_read_u8(&dc->read_buffer, &n_proof_elements)) {
             return -1;
         }
-
+        PRINTF("buffer %x %x %x %x\n",cur_hash[0],cur_hash[1],cur_hash[2],cur_hash[3]);
         if (n_proof_elements > proof_size) {
             PRINTF("Received more proof data than expected.\n");
 
@@ -95,6 +96,7 @@ int call_get_merkle_leaf_hash(dispatcher_context_t *dc,
 
             uint8_t req_more[] = {CCMD_GET_MORE_ELEMENTS};
             SET_RESPONSE(dc, req_more, sizeof(req_more), SW_INTERRUPTED_EXECUTION);
+            PRINTF("call_get_merkle_leaf_hash process_interruption 2\n");
             if (dc->process_interruption(dc) < 0) {
                 return -1;
             }

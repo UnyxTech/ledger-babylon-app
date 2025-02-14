@@ -65,6 +65,14 @@ typedef struct {
     };
 } ui_wallet_state_t;
 
+typedef struct {
+    char hash[BBN_LEAF_HASH_STR_LEN];
+} ui_leaf_hash_state_t;
+
+typedef struct {
+    char pk[BBN_FINALITY_PK_STR_LEN];
+} ui_finality_pk_state_t;
+
 // maximum length of the description of a cosigner in a wallet policy
 #define MAX_KEY_LABEL_LENGTH sizeof("Key @999, unspendable")
 
@@ -116,6 +124,8 @@ typedef union {
     ui_register_wallet_policy_state_t register_wallet_policy;
     ui_validate_transaction_simplified_state_t validate_transaction_simplified;
 #endif
+    ui_leaf_hash_state_t validata_leafhash;
+    ui_finality_pk_state_t finality_pk;
 } ui_state_t;
 extern ui_state_t g_ui_state;
 
@@ -193,6 +203,10 @@ bool ui_validate_output(dispatcher_context_t *context,
 
 bool ui_warn_high_fee(dispatcher_context_t *context);
 
+bool ui_confirm_leafhash(dispatcher_context_t *context, uint8_t *leaf_hash);
+
+bool ui_confirm_finality_pk(dispatcher_context_t *context, uint8_t *pk);
+
 bool ui_validate_transaction(dispatcher_context_t *context,
                              const char *coin_name,
                              uint64_t fee,
@@ -243,6 +257,10 @@ void ui_display_output_address_amount_flow(int index);
 void ui_display_output_address_amount_no_index_flow(int index);
 
 void ui_warn_high_fee_flow(void);
+
+void ui_confim_leaf_hash_flow(void);
+
+void ui_confim_finality_pk_flow(void);
 
 void ui_accept_transaction_flow(bool is_self_transfer);
 

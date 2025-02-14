@@ -148,5 +148,10 @@ typedef struct {
     policy_node_t *wallet_policy_map;
 
     tx_ux_warning_t warnings;
+    uint8_t psbt_leafhash[32];
+    uint32_t psbt_leafhash_state;
+    uint8_t psbt_finality_pk[32];
+    uint32_t psbt_finality_pk_state;
 
 } sign_psbt_state_t;
+

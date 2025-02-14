@@ -249,3 +249,56 @@ __attribute__((warn_unused_result)) int is_policy_sane(dispatcher_context_t *dis
                                                        int wallet_version,
                                                        const uint8_t keys_merkle_root[static 32],
                                                        uint32_t n_keys);
+
+#define PRINTF_BUF(ptr, len)                  \
+    do {                                      \
+        PRINTF("Buffer: ");                   \
+        for (uint32_t i = 0; i < (len); i++) { \
+            PRINTF("%02X", (ptr)[i]);        \
+        }                                     \
+        PRINTF("\n");                         \
+    } while (0)
+  
+#define BBN_NULL_FP                     ((uint8_t[]){ 0x00, 0x00, 0x00, 0x00 })
+#define BBN_LEAFHASH_DISPLAY_FP         ((uint8_t[]){ 0x69, 0x84, 0x6d, 0x00 })
+#define BBN_LEAFHASH_CHECK_FP           ((uint8_t[]){ 0x3b, 0x9f, 0x96, 0x80 })
+#define BBN_FINALITY_PUB_FP             ((uint8_t[]){ 0xff, 0x11, 0x94, 0x73 })
+
+typedef enum{
+    FP_NULL,
+    FP_LEAF_HASH_DISPLY,
+    FP_LEAF_HASH_CHECK,
+    FP_FINALITY_PUB,
+    FP_OTHER
+
+}BBN_FingerPrintType;
+
+#define BBN_POLICY_NAME_SLASHING_1              "Consent to slashing"
+#define BBN_POLICY_NAME_SLASHING_2              "Stake / Step 1"
+#define BBN_POLICY_NAME_SLASHING_3              "Stake / Step 2"
+#define BBN_POLICY_NAME_STAKE_TRANSFER          "Stake Transfer"
+#define BBN_POLICY_NAME_UNBOUND                 "Unbond"
+#define BBN_POLICY_NAME_WITHDRAW                "Withdraw"
+
+typedef enum {
+    BBN_POLICY_UNKNOWN = -1,
+    BBN_POLICY_SLASHING_1,
+    BBN_POLICY_SLASHING_2,
+    BBN_POLICY_SLASHING_3,
+    BBN_POLICY_STAKE_TRANSFER,
+    BBN_POLICY_UNBOUND,
+    BBN_POLICY_WITHDRAW,
+} bbn_policy_type_t;
+
+BBN_FingerPrintType get_fingerprint(const uint8_t fingerprint[static 4]);
+
+int get_action_step(char* name);
+
+#define BBN_DESCRIPTOR_SLASHING_1              "tr(@0/**,and_v(pk_k(@1/**),and_v(pk_k(@2/**),multi_a(6,@3/**,@4/**,@5/**,@6/**,@7/**,@8/**,@9/**,@10/**,@11/**))))"
+#define BBN_DESCRIPTOR_SLASHING_2              "tr(@0/**,and_v(pk_k(@1/**),and_v(pk_k(@2/**),multi_a(6,@3/**,@4/**,@5/**,@6/**,@7/**,@8/**,@9/**,@10/**,@11/**))))"
+#define BBN_DESCRIPTOR_SLASHING_3              "tr(@0/**,and_v(pk_k(@1/**),and_v(pk_k(@2/**),multi_a(6,@3/**,@4/**,@5/**,@6/**,@7/**,@8/**,@9/**,@10/**,@11/**))))"
+#define BBN_DESCRIPTOR_STAKE_TRANSFER          "tr(@0/**)"
+#define BBN_DESCRIPTOR_UNBOUND                 "tr(@0/**,and_v(pk_k(@1/**),multi_a(6,@2/**,@3/**,@4/**,@5/**,@6/**,@7/**,@8/**,@9/**,@10/**)))"
+#define BBN_DESCRIPTOR_WITHDRAW                "tr(@0/**,and_v(pk_k(@1/**),older"
+
+bool check_descriptor(char* descriptor, bbn_policy_type_t type);

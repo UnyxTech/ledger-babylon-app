@@ -176,6 +176,22 @@ UX_STEP_NOCB(ux_high_fee_step,
                  "of total amount!",
              });
 
+
+// Step with eye icon and a "high fees" warning
+UX_STEP_NOCB(ux_leaf_hash_step,
+             bnnn_paging,
+             {
+                 .title = "Leaf hash",
+                 .text = g_ui_state.validata_leafhash.hash,
+             });
+
+UX_STEP_NOCB(ux_finality_pk_step,
+             bnnn_paging,
+             {
+                 .title = "Finality provider",
+                 .text = g_ui_state.finality_pk.pk,
+             });
+
 UX_STEP_NOCB(ux_confirm_selftransfer_step, pnn, {&C_icon_eye, "Confirm", "self-transfer"});
 UX_STEP_NOCB(ux_confirm_transaction_fees_step,
              bnnn_paging,
@@ -186,7 +202,7 @@ UX_STEP_NOCB(ux_confirm_transaction_fees_step,
 UX_STEP_CB(ux_sign_transaction_step,
            pbb,
            set_ux_flow_response(true),
-           {&C_icon_validate_14, "Sign", "transaction"});
+           {&C_icon_validate_14, "Sign", "Staking1"});
 
 // Step with wallet icon and "Register account"
 UX_STEP_NOCB(ux_display_register_wallet_step,
@@ -210,15 +226,15 @@ UX_STEP_NOCB(ux_display_spend_from_registered_wallet_step,
              pnn,
              {
                  &C_icon_wallet,
-                 "Spend from",
-                 "known account",
+                 "Babylon",
+                 "Actions",
              });
 
 // Step with "Wallet name:", followed by the wallet name
 UX_STEP_NOCB(ux_display_wallet_name_step,
              bnnn_paging,
              {
-                 .title = "Account name:",
+                 .title = "Action:",
                  .text = g_ui_state.wallet.wallet_name,
              });
 
@@ -431,6 +447,16 @@ UX_FLOW(ux_warn_high_fee_flow,
         &ux_display_continue_step,
         &ux_display_reject_step);
 
+UX_FLOW(ux_confim_leaf_hash_flow,
+        &ux_leaf_hash_step,
+        &ux_display_continue_step,
+        &ux_display_reject_step);
+
+UX_FLOW(ux_confim_finality_pk_flow,
+&ux_finality_pk_step,
+&ux_display_continue_step,
+&ux_display_reject_step);
+
 // Show transaction fees and finally accept signing
 // #1 screen: fee amount
 // #2 screen: "Sign transaction", with approve button
@@ -525,6 +551,14 @@ void ui_display_output_address_amount_no_index_flow(int index) {
 
 void ui_warn_high_fee_flow(void) {
     ux_flow_init(0, ux_warn_high_fee_flow, NULL);
+}
+
+void ui_confim_leaf_hash_flow(void) {
+    ux_flow_init(0, ux_confim_leaf_hash_flow, NULL);
+}
+
+void ui_confim_finality_pk_flow(void) {
+    ux_flow_init(0, ux_confim_finality_pk_flow, NULL);
 }
 
 void ui_accept_transaction_flow(bool is_self_transfer) {

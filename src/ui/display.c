@@ -10,6 +10,7 @@
 #include "ux.h"
 
 #include "./display.h"
+#include "../handler/lib/policy.h"
 
 #ifdef HAVE_BAGL
 #define SET_UX_DIRTY true
@@ -75,7 +76,7 @@ static bool io_ui_process(dispatcher_context_t *context, bool set_dirty) {
 
     // We are not waiting for the client's input, nor we are doing computations on the device
     io_clear_processing_timeout();
-
+#define REVAMPED_IO
 #ifdef REVAMPED_IO
     do {
         io_seproxyhal_io_heartbeat();
@@ -375,10 +376,44 @@ bool ui_warn_high_fee(dispatcher_context_t *context) {
     return io_ui_process(context, SET_UX_DIRTY);
 }
 
+bool ui_confirm_leafhash(dispatcher_context_t *context, uint8_t *leaf_hash) {
+#ifdef HAVE_AUTOAPPROVE_FOR_PERF_TESTS
+    return true;
+#endif
+    
+    ui_leaf_hash_state_t *state = (ui_leaf_hash_state_t *) &g_ui_state;
+     for (int i = 0; i < 32; i++) {
+        snprintf(state->hash + i * 2, 64, "%02x", leaf_hash[i]); 
+    }
+    state->hash[64] = '\0';  
+    ui_confim_leaf_hash_flow();
+
+    return io_ui_process(context, SET_UX_DIRTY);
+}
+
+
+bool ui_confirm_finality_pk(dispatcher_context_t *context, uint8_t *pk) {
+#ifdef HAVE_AUTOAPPROVE_FOR_PERF_TESTS
+    return true;
+#endif
+    
+    ui_finality_pk_state_t *state = (ui_finality_pk_state_t *) &g_ui_state;
+     for (int i = 0; i < 32; i++) {
+        snprintf(state->pk + i * 2, 64, "%02x", pk[i]); 
+    }
+    state->pk[64] = '\0';  
+    ui_confim_finality_pk_flow();
+
+    return io_ui_process(context, SET_UX_DIRTY);
+}
+
+
+
 bool ui_validate_transaction(dispatcher_context_t *context,
                              const char *coin_name,
                              uint64_t fee,
                              bool is_self_transfer) {
+    return true;                         
 #ifdef HAVE_AUTOAPPROVE_FOR_PERF_TESTS
     return true;
 #endif

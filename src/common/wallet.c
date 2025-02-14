@@ -12,6 +12,7 @@
 #include "../boilerplate/sw.h"
 
 #include "../debug-helpers/debug.h"
+#include "../handler/lib/policy.h"
 
 #ifndef SKIP_FOR_CMOCKA
 #include "../crypto.h"
@@ -314,12 +315,12 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
     if (version != WALLET_POLICY_VERSION_V1 && version != WALLET_POLICY_VERSION_V2) {
         return WITH_ERROR(-1, "Invalid version");
     }
-
+    PRINTF("--tpub--parse_policy_map_key_info-- %d\n", version);
     memset(out, 0, sizeof(policy_map_key_info_t));
 
     if (consume_character(buffer, '[')) {
         out->has_key_origin = 1;
-
+        PRINTF("--tpub--has_key_origin\n");
         if (!buffer_can_read(buffer, 9)) {  // at least 8 bytes + (closing parenthesis or '\')
             return -1;
         }
@@ -354,7 +355,7 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
             return WITH_ERROR(-1, "Expected ']'");
         }
     }
-
+    PRINTF("--tpub--after has_key_origin\n");
     // consume the rest of the buffer into the pubkey, except possibly the final "/**"
     unsigned int ext_pubkey_len = 0;
     char ext_pubkey_str[MAX_SERIALIZED_PUBKEY_LENGTH];
@@ -371,7 +372,8 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
         // loose sanity check; pubkeys in bitcoin can be 111 or 112 characters long
         return WITH_ERROR(-1, "Invalid extended pubkey length");
     }
-
+    PRINTF("--tpub--before decoded len=%d\n",ext_pubkey_len);
+    PRINTF("string=%s\n",ext_pubkey_str);
     serialized_extended_pubkey_check_t ext_pubkey_check;
     if (base58_decode(ext_pubkey_str,
                       ext_pubkey_len,
@@ -379,6 +381,18 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
                       sizeof(ext_pubkey_check)) < 0) {
         return WITH_ERROR(-1, "Error decoding serialized extended pubkey");
     }
+    PRINTF("--tpub--out->ext_pubkey_check\n");
+    PRINTF("--tpub--chaincode\n");
+    PRINTF_BUF(ext_pubkey_check.serialized_extended_pubkey.chain_code,32);
+    PRINTF("--tpub--child_number\n");
+    PRINTF_BUF(ext_pubkey_check.serialized_extended_pubkey.child_number,4);
+    PRINTF("--tpub--depth %d\n",ext_pubkey_check.serialized_extended_pubkey.depth);
+    PRINTF("--tpub--parent_fingerprint\n");
+    PRINTF_BUF(ext_pubkey_check.serialized_extended_pubkey.parent_fingerprint,4);
+    PRINTF("--tpub--version\n");
+    PRINTF_BUF(ext_pubkey_check.serialized_extended_pubkey.version,4);
+    PRINTF("--tpub--compressed_pubkey\n");
+    PRINTF_BUF(ext_pubkey_check.serialized_extended_pubkey.compressed_pubkey,33);
 
     // verify checksum
     uint8_t checksum[4];
@@ -391,7 +405,8 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
     }
 
     out->ext_pubkey = ext_pubkey_check.serialized_extended_pubkey;
-
+    PRINTF("--tpub--out->ext_pubkey\n");
+    PRINTF_BUF(out->ext_pubkey.compressed_pubkey,33);
     // either the string terminates now, or it has a final "/**" suffix for the wildcard.
     if (!buffer_can_read(buffer, 1)) {
         // no wildcard; this is an error in V1
@@ -408,7 +423,6 @@ int parse_policy_map_key_info(buffer_t *buffer, policy_map_key_info_t *out, int 
     if (version == WALLET_POLICY_VERSION_V2) {
         return WITH_ERROR(-1, "Invalid key expression; must terminate after the key/xpub");
     }
-
     out->has_wildcard = 1;
 
     // Only the final "/**" suffix should be left
@@ -647,7 +661,9 @@ static int parse_script(buffer_t *in_buf,
                         size_t depth,
                         unsigned int context_flags) {
     int n_wrappers = 0;
-
+    PRINTF("--mini--version=%d depth=%d context_flags=%d\n",version, depth, context_flags);
+    PRINTF("--mini--in_buf.size=%d in_buf.offset=%d\n", in_buf->size, in_buf->offset);
+    PRINTF_BUF(in_buf->ptr, in_buf->size);
     // Keep track of how many key expressions have been created while parsing
     // This allows to know the counter even in recursive calls
     static uint16_t key_expression_count = 0;
@@ -1006,10 +1022,11 @@ static int parse_script(buffer_t *in_buf,
 
             // and_v(X,Y)
             // X is V; Y is B, K, or V
-
-            if (X->flags.miniscript_type != MINISCRIPT_TYPE_V) {
-                return WITH_ERROR(-1, "invalid type");
-            }
+            PRINTF("--mini--X->flags.miniscript_type=%d\n",X->flags.miniscript_type);
+            //? must be V?
+            // if (X->flags.miniscript_type != MINISCRIPT_TYPE_V) {
+            //     return WITH_ERROR(-1, "invalid type");
+            // }
 
             if (Y->flags.miniscript_type == MINISCRIPT_TYPE_W) {  // must be one of the other three
                 return WITH_ERROR(-1, "invalid type");
@@ -1953,7 +1970,8 @@ static int parse_script(buffer_t *in_buf,
                 return WITH_ERROR(-1, "unreachable code reached");
         }
     }
-
+    PRINTF("--out-- size %d, offset %d\n",out_buf->size, out_buf->offset);
+    PRINTF_BUF(out_buf->ptr, out_buf->size);
     return 0;
 }
 

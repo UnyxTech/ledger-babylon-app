@@ -17,7 +17,7 @@
 
 #include "ledger_assert.h"
 
-#define MAX_POLICY_DEPTH 10
+#define MAX_POLICY_DEPTH 12
 
 // The last opcode must be processed as a VERIFY flag
 #define PROCESSOR_FLAG_V 1
@@ -169,6 +169,7 @@ static const uint8_t fragment_whitelist_tapscript[] = {
 static const generic_processor_command_t commands_0[] = {{CMD_CODE_OP_V, OP_0}, {CMD_CODE_END, 0}};
 static const generic_processor_command_t commands_1[] = {{CMD_CODE_OP_V, OP_1}, {CMD_CODE_END, 0}};
 static const generic_processor_command_t commands_pk_k[] = {{CMD_CODE_PUSH_PK, 0},
+                                                            {CMD_CODE_OP_V,OP_CHECKSIGVERIFY},
                                                             {CMD_CODE_END, 0}};
 static const generic_processor_command_t commands_pk_h[] = {{CMD_CODE_OP, OP_DUP},
                                                             {CMD_CODE_OP, OP_HASH160},
@@ -343,7 +344,7 @@ int read_and_parse_wallet_policy(
         int descriptor_template_len = call_get_preimage(dispatcher_context,
                                                         wallet_header->descriptor_template_sha256,
                                                         policy_map_descriptor_template,
-                                                        MAX_DESCRIPTOR_TEMPLATE_LENGTH);
+                                                        MAX_DESCRIPTOR_TEMPLATE_LENGTH);                                         
         if (descriptor_template_len < 0) {
             return WITH_ERROR(-1, "Failed getting wallet policy descriptor template");
         }
@@ -351,6 +352,15 @@ int read_and_parse_wallet_policy(
 
     buffer_t policy_map_buffer =
         buffer_create(policy_map_descriptor_template, wallet_header->descriptor_template_len);
+    PRINTF("--descriptor-- %d\n",wallet_header->descriptor_template_len);
+    PRINTF_BUF(policy_map_descriptor_template, wallet_header->descriptor_template_len);
+    if(0 < get_action_step(wallet_header->name)){
+         if(!check_descriptor(policy_map_descriptor_template, get_action_step(wallet_header->name))){
+            PRINTF("check_descriptor fail \n");
+            return WITH_ERROR(-1, "Failed  to check descriptor template");
+        }   
+    }
+     
 
     int desc_temp_len = parse_descriptor_template(&policy_map_buffer,
                                                   policy_map_bytes,
@@ -450,8 +460,11 @@ __attribute__((noinline, warn_unused_result)) int get_extended_pubkey_from_clien
         }
     }
     *out = key_info.ext_pubkey;
-
-    return key_info.has_wildcard ? 1 : 0;
+//chester
+    if(get_fingerprint(key_info.master_key_fingerprint)==FP_OTHER)
+        return key_info.master_key_derivation_len;
+    else
+        return 0;
 }
 
 __attribute__((warn_unused_result)) static int get_derived_pubkey(
@@ -460,16 +473,19 @@ __attribute__((warn_unused_result)) static int get_derived_pubkey(
     const policy_node_keyexpr_t *key_expr,
     uint8_t out[static 33]) {
     PRINT_STACK_POINTER();
-
+    int derive_len = 0;
     serialized_extended_pubkey_t ext_pubkey;
-
+    PRINTF("--tpub--get_derived_pubkey \n");
     if (key_expr->type == KEY_EXPRESSION_NORMAL) {
-        if (0 > get_extended_pubkey_from_client(dispatcher_context,
+        derive_len = get_extended_pubkey_from_client(dispatcher_context,
                                                 wdi,
                                                 key_expr->k.key_index,
-                                                &ext_pubkey)) {
+                                                &ext_pubkey);
+        if (0 > derive_len) {
             return -1;
         }
+        PRINTF("--tpub--get_extended_pubkey_from_client \n");
+        PRINTF_BUF(ext_pubkey.compressed_pubkey,33);
     } else if (key_expr->type == KEY_EXPRESSION_MUSIG) {
         const musig_aggr_key_info_t *musig_info = r_musig_aggr_key_info(&key_expr->m.musig_info);
         const uint16_t *key_indexes = r_uint16(&musig_info->key_indexes);
@@ -489,9 +505,7 @@ __attribute__((warn_unused_result)) static int get_derived_pubkey(
         qsort(keys, musig_info->n, sizeof(plain_pk_t), compare_plain_pk);
 
         musig_keyagg_context_t musig_ctx;
-        if (0 > musig_key_agg(keys, musig_info->n, &musig_ctx)) {
-            return -1;
-        }
+        musig_key_agg(keys, musig_info->n, &musig_ctx);
 
         // compute the aggregated extended pubkey
         memset(&ext_pubkey, 0, sizeof(ext_pubkey));
@@ -503,22 +517,29 @@ __attribute__((warn_unused_result)) static int get_derived_pubkey(
     } else {
         LEDGER_ASSERT(false, "Unreachable code");
     }
-
+    PRINTF("--tpub--derive_first_step_for_pubkey \n");
     // we derive the /<change>/<address_index> child of this pubkey
     // we reuse the same memory of ext_pubkey
-    if (0 > derive_first_step_for_pubkey(&ext_pubkey,
-                                         key_expr,
-                                         wdi->sign_psbt_cache,
-                                         wdi->change,
-                                         &ext_pubkey)) {
-        return -1;
+    // only key in keyinfo has derive info will do
+    // if not, just transfer the pubkey
+    if(derive_len>0){
+            if (0 > derive_first_step_for_pubkey(&ext_pubkey,
+                                            key_expr,
+                                            wdi->sign_psbt_cache,
+                                            wdi->change,
+                                            &ext_pubkey)) {
+            return -1;
+        }
+        if (0 > bip32_CKDpub(&ext_pubkey, wdi->address_index, &ext_pubkey, NULL)) {
+            return -1;
+        }
     }
-    if (0 > bip32_CKDpub(&ext_pubkey, wdi->address_index, &ext_pubkey, NULL)) {
-        return -1;
-    }
+    
+    
 
     memcpy(out, ext_pubkey.compressed_pubkey, 33);
-
+    PRINTF("--tpub--derive_first_step_for_pubkey out\n");
+    PRINTF_BUF(out,33);
     return 0;
 }
 
@@ -526,6 +547,8 @@ static void update_output(policy_parser_state_t *state, const uint8_t *data, siz
     policy_parser_node_state_t *node = &state->nodes[state->node_stack_eos];
     node->length += data_len;
     if (state->hash_context != NULL) {
+        PRINTF("hash inside %d\n",data_len);
+        PRINTF_BUF(data,data_len);
         crypto_hash_update(state->hash_context, data, data_len);
     }
 }
@@ -570,7 +593,7 @@ static void update_output_push_u32(policy_parser_state_t *state, uint32_t n) {
 static void update_output_op_v(policy_parser_state_t *state, uint8_t op) {
     const policy_parser_node_state_t *node = &state->nodes[state->node_stack_eos];
     if (node->flags & PROCESSOR_FLAG_V) {
-        if (op == OP_CHECKSIG || op == OP_CHECKMULTISIG || op == OP_NUMEQUAL || op == OP_EQUAL) {
+        if (op == OP_CHECKSIG || op == OP_CHECKMULTISIG || op == OP_NUMEQUAL || op == OP_EQUAL || op == OP_CHECKSIGVERIFY) {
             // the _VERIFY versions of the opcodes are all 1 larger
             update_output_u8(state, op + 1);
         } else {
@@ -722,7 +745,6 @@ __attribute__((warn_unused_result)) static int process_pkh_wpkh_node(policy_pars
     policy_node_with_key_t *policy = (policy_node_with_key_t *) node->policy_node;
 
     uint8_t compressed_pubkey[33];
-
     if (-1 == get_derived_pubkey(state->dispatcher_context,
                                  state->wdi,
                                  r_policy_node_keyexpr(&policy->key),
@@ -744,7 +766,8 @@ __attribute__((warn_unused_result)) static int process_pkh_wpkh_node(policy_pars
 
         update_output_u8(state, OP_EQUALVERIFY);
         update_output_op_v(state, OP_CHECKSIG);
-    } else {  // policy->base.type == TOKEN_WPKH
+    }
+    else {  // policy->base.type == TOKEN_WPKH
         if (state->is_taproot) {
             PRINTF("wpkh is invalid within taproot context");
             return -1;
@@ -928,6 +951,7 @@ __attribute__((warn_unused_result)) static int process_multi_a_sortedmulti_a_nod
         uint8_t compressed_pubkey[33];
 
         if (policy->base.type == TOKEN_MULTI_A) {
+            PRINTF("--tpub--TOKEN_MULTI_A\n");
             if (-1 == get_derived_pubkey(state->dispatcher_context,
                                          state->wdi,
                                          &r_policy_node_keyexpr(&policy->keys)[i],
@@ -1148,7 +1172,7 @@ int get_wallet_script(dispatcher_context_t *dispatcher_context,
         }
     } else if (policy->type == TOKEN_TR) {
         policy_node_tr_t *tr_policy = (policy_node_tr_t *) policy;
-
+        PRINTF("--tpub--TOKEN_TR\n");
         uint8_t compressed_pubkey[33];
 
         if (0 > get_derived_pubkey(dispatcher_context,
@@ -1193,6 +1217,7 @@ __attribute__((noinline)) int get_wallet_internal_script_hash(
     cx_hash_t *hash_context) {
     const uint8_t *whitelist;
     size_t whitelist_len;
+    PRINTF("script_type %d\n",script_type);
     switch (script_type) {
         case WRAPPED_SCRIPT_TYPE_SH:
             whitelist = fragment_whitelist_sh;
@@ -1247,7 +1272,7 @@ __attribute__((noinline)) int get_wallet_internal_script_hash(
                    script_type);
             return -1;
         }
-
+        PRINTF("node->policy_node->type %d\n",node->policy_node->type);
         switch (node->policy_node->type) {
             case TOKEN_0:
                 ret = execute_processor(&state, process_generic_node, commands_0);
@@ -1372,7 +1397,7 @@ __attribute__((noinline)) int get_wallet_internal_script_hash(
     if (ret < 0) {
         return WITH_ERROR(ret, "Processor failed");
     }
-
+    PRINTF("--ret--=%d\n",ret);
     return ret;
 }
 
@@ -1475,7 +1500,7 @@ bool is_wallet_policy_standard(dispatcher_context_t *dispatcher_context,
     if (read_u32_be(key_info.master_key_fingerprint, 0) != master_key_fingerprint) {
         return false;
     }
-
+    PRINTF("--tpub--get_extended_pubkey_at_path is_wallet_policy_standard\n");
     // generate pubkey and check if it matches
     serialized_extended_pubkey_t derived_pubkey;
     if (0 > get_extended_pubkey_at_path(key_info.master_key_derivation,
@@ -1557,6 +1582,7 @@ static int get_keyexpr_by_index_in_tree(const policy_node_tree_t *tree,
                                         unsigned int i,
                                         const policy_node_t **out_tapleaf_ptr,
                                         policy_node_keyexpr_t **out_keyexpr) {
+    PRINTF("get_keyexpr_by_index_in_tree %d\n", tree->is_leaf);                                        
     if (tree->is_leaf) {
         int ret = get_keyexpr_by_index(r_policy_node(&tree->script), i, NULL, out_keyexpr);
         if (ret >= 0 && out_tapleaf_ptr != NULL && i < (unsigned) ret) {
@@ -1591,7 +1617,7 @@ int get_keyexpr_by_index(const policy_node_t *policy,
     if (out_keyexpr == NULL) {
         out_keyexpr = &tmp;
     }
-
+    PRINTF("get_keyexpr_by_index %d\n",policy->type);
     switch (policy->type) {
         // terminal nodes with absolutely no keys
         case TOKEN_0:
@@ -1618,16 +1644,26 @@ int get_keyexpr_by_index(const policy_node_t *policy,
         }
         case TOKEN_TR: {
             policy_node_tr_t *tr = (policy_node_tr_t *) policy;
+            PRINTF("TOKEN_TR %d\n",i);
             if (i == 0) {
                 *out_keyexpr = r_policy_node_keyexpr(&tr->key);
             }
             if (!isnull_policy_node_tree(&tr->tree)) {
+                PRINTF("!isnull_policy_node_tree\n");
                 int ret_tree = get_keyexpr_by_index_in_tree(
                     r_policy_node_tree(&tr->tree),
                     i == 0 ? 0 : i - 1,
                     i == 0 ? NULL : out_tapleaf_ptr,
                     i == 0 ? NULL : out_keyexpr);  // if i == 0, we already found it; so we
                                                    // recur with out_keyexpr set to NULL
+                //PRINTF("i=%d ret_tree = %d out_tapleaf_ptr %x out_keyexpr %x\n", i, ret_tree,out_tapleaf_ptr,out_keyexpr);
+                // if(i==1){
+                //     uint8_t pubkey[33];
+                //     memcpy(pubkey, *out_keyexpr[i]->pubkey.compressed_pubkey, 33);
+                //     PRINTF_BUF(pubkey,33);
+                // }
+                
+
                 if (ret_tree < 0) {
                     return -1;
                 }
@@ -2070,6 +2106,67 @@ int is_policy_sane(dispatcher_context_t *dispatcher_context,
         }
     }
     return 0;
+}
+
+BBN_FingerPrintType get_fingerprint(const uint8_t fingerprint[static 4]){
+    PRINTF("get_fingerprint\n");
+    PRINTF_BUF(fingerprint,4);
+    if(!memcmp(fingerprint, BBN_NULL_FP,4)){
+        PRINTF("FP_NULL\n");
+        return FP_NULL;
+    }else if(!memcmp(fingerprint, BBN_LEAFHASH_DISPLAY_FP,4)){
+        PRINTF("FP_LEAF_HASH_DISPLY\n");
+        return FP_LEAF_HASH_DISPLY;
+    }else if(!memcmp(fingerprint, BBN_LEAFHASH_CHECK_FP,4)){
+        PRINTF("FP_LEAF_HASH_CHECK\n");
+        return FP_LEAF_HASH_CHECK;
+    }else if(!memcmp(fingerprint, BBN_FINALITY_PUB_FP,4)){
+        PRINTF("FP_FINALITY_PUB\n");
+        return FP_FINALITY_PUB;
+    }else{
+        PRINTF("FP_OTHER\n");
+        return FP_OTHER;
+    }
+}
+
+int get_action_step(char* name){
+    PRINTF("--get_action_step %s\n", name);
+    size_t size = strlen(name);
+    if (memcmp(name, BBN_POLICY_NAME_SLASHING_1, size) == 0){
+        return BBN_POLICY_SLASHING_1;
+    }else if(memcmp(name, BBN_POLICY_NAME_SLASHING_2, size) == 0){
+        return BBN_POLICY_SLASHING_2;
+    }else if(memcmp(name, BBN_POLICY_NAME_SLASHING_3, size) == 0){
+        return BBN_POLICY_SLASHING_3;
+    }else if(memcmp(name, BBN_POLICY_NAME_STAKE_TRANSFER, size) == 0){
+        return BBN_POLICY_STAKE_TRANSFER;
+    }else if(memcmp(name, BBN_POLICY_NAME_UNBOUND, size) == 0){
+        return BBN_POLICY_UNBOUND;
+    }else if(memcmp(name, BBN_POLICY_NAME_WITHDRAW, size) == 0){
+        return BBN_POLICY_WITHDRAW;
+    }
+    return BBN_POLICY_UNKNOWN;
+}
+
+bool check_descriptor(char* descriptor, bbn_policy_type_t type){
+    PRINTF("--check_descriptor %s\n", descriptor);
+    PRINTF("--check_descriptor type %d\n", type);
+    size_t size = strlen(BBN_DESCRIPTOR_WITHDRAW);
+    switch (type) {
+        case BBN_POLICY_SLASHING_1:
+        case BBN_POLICY_SLASHING_2:
+        case BBN_POLICY_SLASHING_3:
+            return strcmp(descriptor, BBN_DESCRIPTOR_SLASHING_3) == 0;
+        case BBN_POLICY_STAKE_TRANSFER:
+            return strcmp(descriptor, BBN_DESCRIPTOR_STAKE_TRANSFER) == 0;
+        case BBN_POLICY_UNBOUND:
+            return strcmp(descriptor, BBN_DESCRIPTOR_UNBOUND) == 0;
+        case BBN_POLICY_WITHDRAW:
+            return memcmp(descriptor, BBN_DESCRIPTOR_WITHDRAW, size) == 0;
+        case BBN_POLICY_UNKNOWN:
+        default:
+            return false;
+    }
 }
 
 #pragma GCC diagnostic pop

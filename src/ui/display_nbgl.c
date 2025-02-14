@@ -221,9 +221,9 @@ void ui_accept_transaction_simplified_flow(void) {
     nbgl_useCaseReview(TYPE_TRANSACTION,
                        &pairList,
                        &C_Bitcoin_64px,
-                       "Review transaction\nto send Bitcoin",
+                       "Review Babylon\nto send Bitcoin",
                        NULL,
-                       "Sign transaction\nto send Bitcoin?",
+                       "Babylon Staking\nto send Bitcoin?",
                        start_transaction_callback);
 }
 
