@@ -45,10 +45,10 @@ PATH_APP_LOAD_PARAMS = ""
 PATH_SLIP21_APP_LOAD_PARAMS = "LEDGER-Wallet policy"
 
 # Application version
-APPVERSION_M = 2
-APPVERSION_N = 4
-APPVERSION_P = 0
-APPVERSION_SUFFIX = rc # if not empty, appended at the end. Do not add a dash.
+APPVERSION_M = 0
+APPVERSION_N = 9
+APPVERSION_P = 6
+APPVERSION_SUFFIX = ap # if not empty, appended at the end. Do not add a dash.
 
 ifeq ($(APPVERSION_SUFFIX),)
 APPVERSION = "$(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)"
@@ -63,11 +63,12 @@ ifneq ($(AUTOAPPROVE_FOR_PERF_TESTS),0)
     DEFINES += HAVE_AUTOAPPROVE_FOR_PERF_TESTS
 endif
 
-# Setting to allow building variant applications
+# Setting to allow building variant applications bitcoin_testnet 
 VARIANT_PARAM = COIN
-VARIANT_VALUES = bitcoin_testnet bitcoin
+VARIANT_VALUES = bitcoin bitcoin_testnet
 
 # simplify for tests
+#COIN=bitcoin_testnet
 ifndef COIN
 COIN=bitcoin_testnet
 endif
@@ -105,7 +106,7 @@ else ifeq ($(COIN),bitcoin)
     DEFINES   += COIN_NATIVE_SEGWIT_PREFIX=\"bc\"
     DEFINES   += COIN_COINID_SHORT=\"BTC\"
 
-    APPNAME = "Bitcoin"
+    APPNAME = "Babylon"
 
 else
     ifeq ($(filter clean,$(MAKECMDGOALS)),)
@@ -121,10 +122,10 @@ endif
 
 # Application icons following guidelines:
 # https://developers.ledger.com/docs/embedded-app/design-requirements/#device-icon
-ICON_NANOX = icons/nanox_app_bitcoin.gif
-ICON_NANOSP = icons/nanox_app_bitcoin.gif
-ICON_STAX = icons/stax_app_bitcoin.gif
-ICON_FLEX = icons/flex_app_bitcoin.gif
+ICON_NANOX = icons/nanox_app_babylon.gif
+ICON_NANOSP = icons/nanox_app_babylon.gif
+ICON_STAX = icons/stax_app_babylon.gif
+ICON_FLEX = icons/flex_app_babylon.gif
 
 ########################################
 # Application communication interfaces #
