@@ -83,7 +83,8 @@ void handler_register_wallet(dispatcher_context_t *dc, uint8_t protocol_version)
                                          &wallet_header,
                                          policy_map_descriptor,
                                          policy_map.bytes,
-                                         sizeof(policy_map.bytes))) {
+                                         sizeof(policy_map.bytes),
+                                         false)) {
         SEND_SW(dc, SW_INCORRECT_DATA);
         return;
     }

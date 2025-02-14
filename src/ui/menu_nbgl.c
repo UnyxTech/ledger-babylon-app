@@ -48,9 +48,9 @@ void ui_menu_main_flow_bitcoin(void) {
 
 void ui_menu_main_flow_bitcoin_testnet(void) {
     nbgl_useCaseHomeAndSettings(
-        "Bitcoin Babylon",
-        &C_Bitcoin_64px,
-        "This app enables signing\ntransactions on all the Bitcoin\ntest networks.",
+        "Babylon",
+        &C_Babylon_64px,
+        "This app enables transactions\n for Babylon test networks.",
         INIT_HOME_PAGE,
         NULL,
         &infoList,

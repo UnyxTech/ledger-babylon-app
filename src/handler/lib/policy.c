@@ -330,7 +330,8 @@ int read_and_parse_wallet_policy(
     policy_map_wallet_header_t *wallet_header,
     uint8_t policy_map_descriptor_template[static MAX_DESCRIPTOR_TEMPLATE_LENGTH],
     uint8_t *policy_map_bytes,
-    size_t policy_map_bytes_len) {
+    size_t policy_map_bytes_len,
+    bool is_sign) {
     if ((read_wallet_policy_header(buf, wallet_header)) < 0) {
         return WITH_ERROR(-1, "Failed reading wallet policy header");
     }
@@ -354,13 +355,16 @@ int read_and_parse_wallet_policy(
         buffer_create(policy_map_descriptor_template, wallet_header->descriptor_template_len);
     PRINTF("--descriptor-- %d\n",wallet_header->descriptor_template_len);
     PRINTF_BUF(policy_map_descriptor_template, wallet_header->descriptor_template_len);
-    if(0 < get_action_step(wallet_header->name)){
-         if(!check_descriptor(policy_map_descriptor_template, get_action_step(wallet_header->name))){
-            PRINTF("check_descriptor fail \n");
-            return WITH_ERROR(-1, "Failed  to check descriptor template");
-        }   
+    if(is_sign){
+         if(0 > get_action_step(wallet_header->name)){
+            return WITH_ERROR(-1, "Failed  to get_action_step");
+        }else{
+        if(!check_descriptor(policy_map_descriptor_template, get_action_step(wallet_header->name))){
+                PRINTF("check_descriptor fail \n");
+                return WITH_ERROR(-1, "Failed  to check descriptor template");
+            }   
+        }
     }
-     
 
     int desc_temp_len = parse_descriptor_template(&policy_map_buffer,
                                                   policy_map_bytes,

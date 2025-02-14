@@ -30,7 +30,8 @@ __attribute__((warn_unused_result)) int read_and_parse_wallet_policy(
     policy_map_wallet_header_t *wallet_header,
     uint8_t policy_map_descriptor[static MAX_DESCRIPTOR_TEMPLATE_LENGTH],
     uint8_t *policy_map_bytes,
-    size_t policy_map_bytes_len);
+    size_t policy_map_bytes_len,
+    bool is_sign);
 
 typedef enum {
     WRAPPED_SCRIPT_TYPE_SH,

@@ -115,7 +115,8 @@ void handler_get_wallet_address(dispatcher_context_t *dc, uint8_t protocol_versi
                                              &wallet_header,
                                              policy_map_descriptor,
                                              wallet_policy_map.bytes,
-                                             sizeof(wallet_policy_map.bytes))) {
+                                             sizeof(wallet_policy_map.bytes),
+                                             false)) {
             SEND_SW(dc, SW_INCORRECT_DATA);
             return;
         }

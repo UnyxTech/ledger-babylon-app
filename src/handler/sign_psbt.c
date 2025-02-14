@@ -498,7 +498,8 @@ init_global_state(dispatcher_context_t *dc, sign_psbt_state_t *st) {
                                                          &st->wallet_header,
                                                          policy_map_descriptor,
                                                          st->wallet_policy_map_bytes,
-                                                         MAX_WALLET_POLICY_BYTES);
+                                                         MAX_WALLET_POLICY_BYTES,
+                                                         true);
         if (desc_temp_len < 0) {
             PRINTF("Failed to read or parse wallet policy");
             SEND_SW(dc, SW_INCORRECT_DATA);

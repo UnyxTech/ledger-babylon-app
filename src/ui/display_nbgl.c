@@ -220,7 +220,7 @@ void ui_accept_transaction_simplified_flow(void) {
 
     nbgl_useCaseReview(TYPE_TRANSACTION,
                        &pairList,
-                       &C_Bitcoin_64px,
+                       &C_Babylon_64px,
                        "Review Babylon\nto send Bitcoin",
                        NULL,
                        "Babylon Staking\nto send Bitcoin?",
@@ -229,8 +229,8 @@ void ui_accept_transaction_simplified_flow(void) {
 
 void ui_display_transaction_prompt(void) {
     nbgl_useCaseReviewStreamingStart(TYPE_TRANSACTION,
-                                     &C_Bitcoin_64px,
-                                     "Review transaction\nto send Bitcoin",
+                                     &C_Babylon_64px,
+                                     "Connected to\nBabylon Dapp",
                                      NULL,
                                      start_transaction_callback);
 }
@@ -293,7 +293,7 @@ void ui_display_pubkey_flow(void) {
 
     nbgl_useCaseReviewLight(TYPE_OPERATION,
                             &pairList,
-                            &C_Bitcoin_64px,
+                            &C_Babylon_64px,
                             "Confirm public key",
                             NULL,
                             "Approve public key",
@@ -312,7 +312,7 @@ void ui_display_receive_in_wallet_flow(void) {
 
     nbgl_useCaseAddressReview(g_ui_state.wallet.address,
                               &pairList,
-                              &C_Bitcoin_64px,
+                              &C_Babylon_64px,
                               "Verify Bitcoin\naddress",
                               NULL,
                               status_address_callback);
@@ -356,7 +356,7 @@ void ui_display_register_wallet_policy_flow(void) {
 
     nbgl_useCaseReviewLight(TYPE_OPERATION,
                             &pairList,
-                            &C_Bitcoin_64px,
+                            &C_Babylon_64px,
                             "Review account\nto register",
                             NULL,
                             "Register account?",
@@ -381,7 +381,7 @@ void ui_display_pubkey_suspicious_flow(void) {
     pairList.pairs = pairs;
 
     contentList[0].type = CENTERED_INFO;
-    contentList[0].content.centeredInfo.icon = &C_Bitcoin_64px;
+    contentList[0].content.centeredInfo.icon = &C_Babylon_64px;
     contentList[0].content.centeredInfo.text1 = "Confirm public key";
     contentList[0].content.centeredInfo.text2 = NULL;
     contentList[0].content.centeredInfo.text3 = NULL;
@@ -404,7 +404,7 @@ void ui_display_pubkey_suspicious_flow(void) {
 
     contentList[3].type = INFO_BUTTON;
     contentList[3].content.infoButton.text = "Approve public key";
-    contentList[3].content.infoButton.icon = &C_Bitcoin_64px;
+    contentList[3].content.infoButton.icon = &C_Babylon_64px;
     contentList[3].content.infoButton.buttonText = "Approve";
     contentList[3].content.infoButton.buttonToken = REVIEW_CONFIRM;
     contentList[3].content.infoButton.tuneId = TUNE_TAP_CASUAL;
@@ -478,7 +478,7 @@ void ui_sign_message_content_flow(void) {
     if (show_message_start_page == true) {
         show_message_start_page = false;
         nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                         &C_Bitcoin_64px,
+                                         &C_Babylon_64px,
                                          "Review message",
                                          NULL,
                                          message_display_content);
@@ -489,7 +489,7 @@ void ui_sign_message_content_flow(void) {
 
 void ui_sign_message_path_hash_and_confirm_flow(void) {
     nbgl_useCaseReviewStreamingStart(TYPE_MESSAGE,
-                                     &C_Bitcoin_64px,
+                                     &C_Babylon_64px,
                                      "Review message",
                                      NULL,
                                      message_display_path);
@@ -504,11 +504,11 @@ void ui_set_display_prompt(void) {
 }
 
 void ui_display_spend_from_wallet_flow(void) {
-    confirmed_status = "Account name\nconfirmed";
-    rejected_status = "Account name rejected";
+    confirmed_status = "Action\nconfirmed";
+    rejected_status = "Action rejected";
 
     // Setup data to display
-    pairs[0].item = "Account name";
+    pairs[0].item = "Action name";
     pairs[0].value = g_ui_state.wallet.wallet_name;
 
     // Setup list
@@ -518,10 +518,10 @@ void ui_display_spend_from_wallet_flow(void) {
 
     nbgl_useCaseReviewLight(TYPE_OPERATION,
                             &pairList,
-                            &C_Bitcoin_64px,
-                            "Spend from\nknown account",
+                            &C_Babylon_64px,
+                            "Babylon actions",
                             NULL,
-                            "Confirm account name",
+                            "Confirm actions name",
                             status_operation_callback);
 }
 
@@ -529,7 +529,7 @@ void ui_display_spend_from_wallet_flow(void) {
 void ui_display_default_wallet_address_flow(void) {
     nbgl_useCaseAddressReview(g_ui_state.wallet.address,
                               NULL,
-                              &C_Bitcoin_64px,
+                              &C_Babylon_64px,
                               "Verify Bitcoin\naddress",
                               NULL,
                               status_address_callback);
@@ -543,6 +543,55 @@ void ui_warn_high_fee_flow(void) {
                        "Continue",
                        "Reject",
                        start_transaction_callback);
+}
+
+
+// Warning Flows
+void ui_confim_leaf_hash_flow(void) {
+    confirmed_status = "Action\nconfirmed";
+    rejected_status = "Action rejected";
+
+    // Setup data to display
+    pairs[0].item = "Leaf hash";
+    pairs[0].value = g_ui_state.validata_leafhash.hash;
+
+    // Setup list
+    pairList.nbMaxLinesForValue = 0;
+    pairList.nbPairs = 1;
+    pairList.pairs = pairs;
+
+    nbgl_useCaseReviewLight(TYPE_OPERATION,
+                            &pairList,
+                            &C_Babylon_64px,
+                            "Leaf hash is hash of taproot script",
+                            NULL,
+                            "Confirm it is the same\non your website",
+                            status_operation_callback);
+
+}
+
+void ui_confim_finality_pk_flow(void) {
+
+    confirmed_status = "Action\nconfirmed";
+    rejected_status = "Action rejected";
+
+    // Setup data to display
+    pairs[0].item = "Finality provider";
+    pairs[0].value = g_ui_state.finality_pk.pk;
+
+    // Setup list
+    pairList.nbMaxLinesForValue = 0;
+    pairList.nbPairs = 1;
+    pairList.pairs = pairs;
+
+    nbgl_useCaseReviewLight(TYPE_OPERATION,
+                            &pairList,
+                            &C_Babylon_64px,
+                            "Finality provider\npublic key",
+                            NULL,
+                            "Confirm it is the same\non your website",
+                            status_operation_callback);
+
 }
 
 void ui_display_warning_external_inputs_flow(void) {
