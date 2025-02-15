@@ -1,3 +1,8 @@
+# Babylon Test
+We move all original test files to ../vec and only keep babylon test in test folder.
+
+And ./data is the psbt data we captured from wallet for making the test data. That's only for your reference.
+
 # End-to-end tests
 
 These tests are implemented in Python and can be executed either using the [Speculos](https://github.com/LedgerHQ/speculos) emulator or a Ledger Nano S/X.
