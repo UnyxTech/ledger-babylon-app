@@ -30,6 +30,15 @@ Python: >=3.12,<3.14
    dist/babyloninst
    ```
 
+## Run
+### On Windows
+Just double click.
+
+### On MacOS
+Run in the terminal with the admin privilege.
+`sudo ./dist/babyloninst`
+
+
 ## Device Compatibility Table
 
 | Device Name | Firmware Version | Target ID |
