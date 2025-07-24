@@ -1,7 +1,7 @@
-# Ledger Bitcoin Application
+# Babylon Staking Application(1st version)
 
-This is the Bitcoin application for Ledger Nano X/SP, Stax and Flex.
-
+This is the 1st Babylon staking application base on ledger_bitcoin_new. Now there is a new implement base on boilerplate.
+ d
 ## Quick start guide
 
 ### With VSCode
